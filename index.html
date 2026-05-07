@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>麻雀の日程</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: #fef3c7;
+    color: #1f2937;
+    padding-bottom: 40px;
+    min-height: 100vh;
+  }
+  .header {
+    background: #15803d;
+    color: white;
+    padding: 20px 16px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-inner { max-width: 640px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-icon { font-size: 36px; }
+  .header h1 { font-size: 22px; font-weight: 900; }
+  .header p { font-size: 12px; opacity: 0.9; margin-top: 2px; }
+  .status { font-size: 12px; display: flex; align-items: center; gap: 4px; }
+  .status.online { color: #d1fae5; }
+  .status.offline { color: #fecaca; }
+  .container { max-width: 640px; margin: 0 auto; padding: 16px; }
+  .section { margin-bottom: 16px; }
+
+  .members-box {
+    background: #fef9c3;
+    border: 4px solid #facc15;
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .members-title { text-align: center; font-weight: 900; margin-bottom: 12px; font-size: 16px; }
+  .members-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .member-btn {
+    padding: 12px 4px;
+    border-radius: 8px;
+    border: 3px solid #d1d5db;
+    background: white;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .member-btn:active { transform: scale(0.95); }
+  .member-btn.active { background: #15803d; color: white; border-color: #166534; }
+  .selected-banner {
+    margin-top: 12px;
+    background: #15803d;
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: bold;
+  }
+
+  .calendar {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .calendar-title { background: #f9fafb; padding: 12px; text-align: center; font-weight: 900; border-bottom: 1px solid #e5e7eb; }
+  .calendar-nav { display: flex; align-items: center; justify-content: space-between; padding: 12px; }
+  .calendar-nav button {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    font-size: 24px;
+    color: #374151;
+    border-radius: 8px;
+  }
+  .calendar-nav button:active { background: #e5e7eb; }
+  .calendar-nav-month { font-size: 22px; font-weight: 900; }
+
+  .calendar-dow { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e5e7eb; }
+  .calendar-dow div { text-align: center; padding: 8px 0; font-size: 12px; font-weight: bold; color: #4b5563; }
+  .calendar-dow .sun { color: #ef4444; }
+  .calendar-dow .sat { color: #3b82f6; }
+
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e5e7eb; }
+  .day-cell {
+    aspect-ratio: 1;
+    border-bottom: 1px solid #f3f4f6;
+    border-right: 1px solid #f3f4f6;
+    padding: 4px;
+    background: white;
+    cursor: pointer;
+    border-top: none;
+    border-left: none;
+    position: relative;
+    text-align: left;
+    font-family: inherit;
+  }
+  .day-cell:disabled { background: #f9fafb; color: #d1d5db; cursor: not-allowed; }
+  .day-cell.selected { background: #d1fae5; box-shadow: inset 0 0 0 4px #10b981; z-index: 1; }
+  .day-cell.open-day { background: #fef9c3; }
+  .day-cell:not(:disabled):active { background: #d1fae5; }
+  .day-num { font-size: 16px; font-weight: bold; }
+  .day-num.sun, .day-num.holiday { color: #ef4444; }
+  .day-num.sat { color: #3b82f6; }
+  .day-num.disabled { color: #d1d5db; }
+  .holiday-name { font-size: 8px; color: #ef4444; line-height: 1; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .my-resp {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 14px;
+    font-weight: 900;
+  }
+  .my-resp.yes { color: #16a34a; }
+  .my-resp.maybe { color: #ca8a04; }
+  .my-resp.no { color: #dc2626; }
+  .yes-count {
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 900;
+    color: #15803d;
+  }
+  .yes-count.open { color: #b45309; }
+
+  .response-box {
+    background: white;
+    border: 4px solid #10b981;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+  .response-title { text-align: center; font-weight: 900; font-size: 16px; margin-bottom: 12px; }
+  .response-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .response-btn {
+    padding: 14px 0;
+    border-radius: 12px;
+    border: 4px solid;
+    font-weight: 900;
+    cursor: pointer;
+    text-align: center;
+    background: white;
+    font-family: inherit;
+  }
+  .response-btn:active { transform: scale(0.97); }
+  .response-btn .symbol { font-size: 28px; }
+  .response-btn .label { font-size: 13px; margin-top: 4px; }
+  .response-btn.yes { color: #16a34a; border-color: #bbf7d0; background: #f0fdf4; }
+  .response-btn.maybe { color: #ca8a04; border-color: #fef08a; background: #fefce8; }
+  .response-btn.no { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
+  .response-btn.yes.active { background: #22c55e; color: white; border-color: #15803d; }
+  .response-btn.maybe.active { background: #facc15; color: white; border-color: #ca8a04; }
+  .response-btn.no.active { background: #ef4444; color: white; border-color: #b91c1c; }
+
+  .members-list { background: #f9fafb; border-radius: 8px; padding: 12px; }
+  .members-list-title { font-size: 12px; font-weight: bold; color: #4b5563; margin-bottom: 8px; }
+  .member-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
+  .member-row .symbol { font-size: 22px; font-weight: 900; }
+  .member-row .symbol.yes { color: #16a34a; }
+  .member-row .symbol.maybe { color: #ca8a04; }
+  .member-row .symbol.no { color: #dc2626; }
+  .member-row .symbol.none { color: #9ca3af; }
+
+  .open-banner {
+    margin-top: 12px;
+    background: #facc15;
+    color: #1f2937;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 900;
+  }
+
+  .hint {
+    background: #dbeafe;
+    border: 2px solid #93c5fd;
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+    color: #1e40af;
+    font-weight: bold;
+  }
+  .hint small { font-weight: normal; font-size: 12px; }
+
+  .legend { background: white; border: 2px solid #e5e7eb; border-radius: 8px; padding: 12px; font-size: 12px; color: #4b5563; }
+  .legend-title { font-weight: bold; color: #374151; margin-bottom: 6px; }
+  .legend div { margin: 2px 0; }
+
+  .loading { text-align: center; padding: 40px; }
+  .loading-icon { font-size: 48px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-left">
+      <span class="header-icon">🀄</span>
+      <div>
+        <h1>麻雀の日程</h1>
+        <p>4人以上で開催決定</p>
+      </div>
+    </div>
+    <div id="status" class="status offline">📡 接続中...</div>
+  </div>
+</div>
+
+<div class="container" id="app">
+  <div class="loading">
+    <div class="loading-icon">🀄</div>
+    <div>読み込み中...</div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://fhfzbkjpagktvonsasui.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_C1A5JEUCKVe3mYEThPgqvg_K2k3Ic6A';
+  const MEMBERS = ['宇野', '丹波', '村上', '津熊', '森田'];
+
+  const HOLIDAYS = {
+    '2026-01-01': '元日', '2026-01-12': '成人の日', '2026-02-11': '建国記念の日',
+    '2026-02-23': '天皇誕生日', '2026-03-20': '春分の日', '2026-04-29': '昭和の日',
+    '2026-05-03': '憲法記念日', '2026-05-04': 'みどりの日', '2026-05-05': 'こどもの日',
+    '2026-05-06': '振替休日', '2026-07-20': '海の日', '2026-08-11': '山の日',
+    '2026-09-21': '敬老の日', '2026-09-22': '国民の休日', '2026-09-23': '秋分の日',
+    '2026-10-12': 'スポーツの日', '2026-11-03': '文化の日', '2026-11-23': '勤労感謝の日',
+    '2027-01-01': '元日', '2027-01-11': '成人の日', '2027-02-11': '建国記念の日',
+    '2027-02-23': '天皇誕生日', '2027-03-21': '春分の日', '2027-03-22': '振替休日',
+    '2027-04-29': '昭和の日', '2027-05-03': '憲法記念日', '2027-05-04': 'みどりの日',
+    '2027-05-05': 'こどもの日', '2027-07-19': '海の日', '2027-08-11': '山の日',
+    '2027-09-20': '敬老の日', '2027-09-23': '秋分の日', '2027-10-11': 'スポーツの日',
+    '2027-11-03': '文化の日', '2027-11-23': '勤労感謝の日',
+  };
+
+  // State
+  const state = {
+    viewYear: new Date().getFullYear(),
+    viewMonth: new Date().getMonth(),
+    activeMember: null,
+    selectedDate: null,
+    responses: {},
+    online: false,
+    loaded: false,
+  };
+
+  // Supabase fetch helper
+  async function sbFetch(path, options = {}) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      ...options,
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+        ...(options.headers || {}),
+      },
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text.substring(0, 200)}`);
+    }
+    return res.json();
+  }
+
+  async function loadResponses() {
+    try {
+      const data = await sbFetch('responses?select=*');
+      const map = {};
+      data.forEach((row) => {
+        if (!map[row.date]) map[row.date] = {};
+        map[row.date][row.member_name] = row.status;
+      });
+      state.responses = map;
+      state.online = true;
+      state.loaded = true;
+      render();
+    } catch (e) {
+      console.error('Load error:', e);
+      state.online = false;
+      state.loaded = true;
+      render();
+    }
+  }
+
+  async function saveResponse(dateKey, member, value) {
+    const current = (state.responses[dateKey] || {})[member];
+
+    // Optimistic update
+    if (!state.responses[dateKey]) state.responses[dateKey] = {};
+    if (current === value) {
+      delete state.responses[dateKey][member];
+      if (Object.keys(state.responses[dateKey]).length === 0) delete state.responses[dateKey];
+    } else {
+      state.responses[dateKey][member] = value;
+    }
+    render();
+
+    try {
+      if (current === value) {
+        await sbFetch(
+          `responses?member_name=eq.${encodeURIComponent(member)}&date=eq.${dateKey}`,
+          { method: 'DELETE' }
+        );
+      } else {
+        await sbFetch('responses', {
+          method: 'POST',
+          headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+          body: JSON.stringify({
+            member_name: member,
+            date: dateKey,
+            status: value,
+            updated_at: new Date().toISOString(),
+          }),
+        });
+      }
+      state.online = true;
+      loadResponses();
+    } catch (e) {
+      console.error('Save error:', e);
+      alert('保存に失敗しました。もう一度試してください。');
+      state.online = false;
+      loadResponses();
+    }
+  }
+
+  // Helpers
+  function formatDateKey(year, month, day) {
+    const m = String(month + 1).padStart(2, '0');
+    const d = String(day).padStart(2, '0');
+    return `${year}-${m}-${d}`;
+  }
+  function isWeekendOrHoliday(year, month, day) {
+    const dow = new Date(year, month, day).getDay();
+    if (dow === 0 || dow === 6) return true;
+    return HOLIDAYS[formatDateKey(year, month, day)] !== undefined;
+  }
+  function isPast(year, month, day) {
+    const t = new Date();
+    t.setHours(0, 0, 0, 0);
+    return new Date(year, month, day) < t;
+  }
+  function countYes(dateKey) {
+    const r = state.responses[dateKey] || {};
+    return Object.values(r).filter((v) => v === 'yes').length;
+  }
+  function isOpen(dateKey) {
+    return countYes(dateKey) >= 4;
+  }
+  function formatDateDisplay(dateKey) {
+    const [y, m, d] = dateKey.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    const days = ['日', '月', '火', '水', '木', '金', '土'];
+    return `${m}月${d}日(${days[dt.getDay()]})`;
+  }
+
+  // Event handlers
+  function selectMember(name) {
+    state.activeMember = state.activeMember === name ? null : name;
+    render();
+  }
+  function selectDate(dateKey) {
+    state.selectedDate = state.selectedDate === dateKey ? null : dateKey;
+    render();
+  }
+  function prevMonth() {
+    if (state.viewMonth === 0) {
+      state.viewMonth = 11;
+      state.viewYear -= 1;
+    } else {
+      state.viewMonth -= 1;
+    }
+    render();
+  }
+  function nextMonth() {
+    if (state.viewMonth === 11) {
+      state.viewMonth = 0;
+      state.viewYear += 1;
+    } else {
+      state.viewMonth += 1;
+    }
+    render();
+  }
+  function setResp(value) {
+    if (state.selectedDate && state.activeMember) {
+      saveResponse(state.selectedDate, state.activeMember, value);
+    }
+  }
+
+  // Render
+  function escape(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function renderStatus() {
+    const el = document.getElementById('status');
+    if (state.online) {
+      el.className = 'status online';
+      el.textContent = '✓ 同期中';
+    } else {
+      el.className = 'status offline';
+      el.textContent = '⚠ オフライン';
+    }
+  }
+
+  function renderCalendar() {
+    const firstDay = new Date(state.viewYear, state.viewMonth, 1);
+    const startDow = firstDay.getDay();
+    const daysInMonth = new Date(state.viewYear, state.viewMonth + 1, 0).getDate();
+
+    let html = '';
+    for (let i = 0; i < startDow; i++) {
+      html += '<button class="day-cell" disabled></button>';
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateKey = formatDateKey(state.viewYear, state.viewMonth, day);
+      const dow = new Date(state.viewYear, state.viewMonth, day).getDay();
+      const available = isWeekendOrHoliday(state.viewYear, state.viewMonth, day);
+      const past = isPast(state.viewYear, state.viewMonth, day);
+      const holiday = HOLIDAYS[dateKey];
+      const yes = countYes(dateKey);
+      const open = isOpen(dateKey);
+      const myResp = state.activeMember ? (state.responses[dateKey] || {})[state.activeMember] : null;
+      const selected = state.selectedDate === dateKey;
+      const disabled = !available || past;
+
+      let classes = 'day-cell';
+      if (selected) classes += ' selected';
+      else if (open) classes += ' open-day';
+
+      let dayClass = 'day-num';
+      if (disabled) dayClass += ' disabled';
+      else if (dow === 0 || holiday) dayClass += ' sun';
+      else if (dow === 6) dayClass += ' sat';
+
+      html += `<button class="${classes}" ${disabled ? 'disabled' : `onclick="selectDate('${dateKey}')"`}>`;
+      html += `<div class="${dayClass}">${day}</div>`;
+      if (holiday && !disabled) {
+        html += `<div class="holiday-name">${escape(holiday)}</div>`;
+      }
+      if (!disabled && myResp) {
+        const sym = myResp === 'yes' ? '○' : myResp === 'maybe' ? '△' : '×';
+        html += `<div class="my-resp ${myResp}">${sym}</div>`;
+      }
+      if (!disabled && yes > 0) {
+        html += `<div class="yes-count ${open ? 'open' : ''}">${open ? '⭐' : ''}○${yes}</div>`;
+      }
+      html += `</button>`;
+    }
+    while ((startDow + daysInMonth + (7 - ((startDow + daysInMonth) % 7)) % 7) % 7 !== 0 && false) {}
+    const total = startDow + daysInMonth;
+    const trailing = (7 - (total % 7)) % 7;
+    for (let i = 0; i < trailing; i++) {
+      html += '<button class="day-cell" disabled></button>';
+    }
+    return html;
+  }
+
+  function renderResponseBox() {
+    if (!state.selectedDate || !state.activeMember) return '';
+    const myResp = (state.responses[state.selectedDate] || {})[state.activeMember];
+
+    let html = `<div class="response-box">`;
+    html += `<div class="response-title">③ ${formatDateDisplay(state.selectedDate)} に行ける？</div>`;
+    html += `<div class="response-grid">`;
+    html += `<button class="response-btn yes ${myResp === 'yes' ? 'active' : ''}" onclick="setResp('yes')"><div class="symbol">○</div><div class="label">行ける</div></button>`;
+    html += `<button class="response-btn maybe ${myResp === 'maybe' ? 'active' : ''}" onclick="setResp('maybe')"><div class="symbol">△</div><div class="label">微妙</div></button>`;
+    html += `<button class="response-btn no ${myResp === 'no' ? 'active' : ''}" onclick="setResp('no')"><div class="symbol">×</div><div class="label">行けない</div></button>`;
+    html += `</div>`;
+
+    html += `<div class="members-list">`;
+    html += `<div class="members-list-title">この日のみんなの回答</div>`;
+    MEMBERS.forEach((name) => {
+      const r = (state.responses[state.selectedDate] || {})[name];
+      const sym = r === 'yes' ? '○' : r === 'maybe' ? '△' : r === 'no' ? '×' : '？';
+      const cls = r || 'none';
+      const youLabel = name === state.activeMember ? ' (あなた)' : '';
+      html += `<div class="member-row"><span>${escape(name)}${youLabel}</span><span class="symbol ${cls}">${sym}</span></div>`;
+    });
+    if (isOpen(state.selectedDate)) {
+      html += `<div class="open-banner">⭐ 4人以上が ○ ! 開催決定！</div>`;
+    }
+    html += `</div></div>`;
+    return html;
+  }
+
+  function render() {
+    if (!state.loaded) {
+      document.getElementById('app').innerHTML = `
+        <div class="loading">
+          <div class="loading-icon">🀄</div>
+          <div>読み込み中...</div>
+        </div>`;
+      return;
+    }
+
+    renderStatus();
+
+    let html = '';
+
+    // Members
+    html += `<div class="section"><div class="members-box">`;
+    html += `<div class="members-title">① まず自分の名前を選ぶ</div>`;
+    html += `<div class="members-grid">`;
+    MEMBERS.forEach((name) => {
+      const active = state.activeMember === name ? ' active' : '';
+      html += `<button class="member-btn${active}" onclick="selectMember('${name}')">${escape(name)}</button>`;
+    });
+    html += `</div>`;
+    if (state.activeMember) {
+      html += `<div class="selected-banner">✓ ${escape(state.activeMember)}さんを選択中</div>`;
+    }
+    html += `</div></div>`;
+
+    // Calendar
+    html += `<div class="section"><div class="calendar">`;
+    html += `<div class="calendar-title">② 日付を選ぶ（土日祝のみ）</div>`;
+    html += `<div class="calendar-nav">`;
+    html += `<button onclick="prevMonth()">‹</button>`;
+    html += `<div class="calendar-nav-month">${state.viewYear}年 ${state.viewMonth + 1}月</div>`;
+    html += `<button onclick="nextMonth()">›</button>`;
+    html += `</div>`;
+    html += `<div class="calendar-dow"><div class="sun">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="sat">土</div></div>`;
+    html += `<div class="calendar-grid">${renderCalendar()}</div>`;
+    html += `</div></div>`;
+
+    // Response box
+    if (state.selectedDate && state.activeMember) {
+      html += `<div class="section">${renderResponseBox()}</div>`;
+    } else if (!state.activeMember) {
+      html += `<div class="section"><div class="hint">👆 まず上の枠で自分の名前を選んでください</div></div>`;
+    } else {
+      html += `<div class="section"><div class="hint">👆 カレンダーから日付を選んでください<br><small>（土日祝だけ選べます）</small></div></div>`;
+    }
+
+    // Legend
+    html += `<div class="section"><div class="legend">`;
+    html += `<div class="legend-title">📖 カレンダーの見方</div>`;
+    html += `<div>・右上の <span style="color:#16a34a;font-weight:900">○△×</span> は、自分の回答</div>`;
+    html += `<div>・下の <span style="color:#15803d;font-weight:900">○3</span> は、○の人数</div>`;
+    html += `<div>・<span style="background:#fef9c3;padding:0 4px">黄色</span>の日 = ⭐ 4人以上で開催決定</div>`;
+    html += `<div>・データはみんなでリアルタイム共有されます</div>`;
+    html += `</div></div>`;
+
+    document.getElementById('app').innerHTML = html;
+  }
+
+  // Initial load + polling
+  loadResponses();
+  setInterval(loadResponses, 5000);
+</script>
+
+</body>
+</html>
