@@ -29,12 +29,12 @@
   .calendar-nav { display: flex; align-items: center; justify-content: space-between; padding: 12px; }
   .calendar-nav button { background: none; border: none; padding: 8px; cursor: pointer; font-size: 24px; color: #374151; border-radius: 8px; }
   .calendar-nav-month { font-size: 22px; font-weight: 900; }
-  .calendar-dow { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e5e7eb; }
+  .calendar-dow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid #e5e7eb; }
   .calendar-dow div { text-align: center; padding: 8px 0; font-size: 12px; font-weight: bold; color: #4b5563; }
   .calendar-dow .sun { color: #ef4444; }
   .calendar-dow .sat { color: #3b82f6; }
-  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e5e7eb; }
-  .day-cell { aspect-ratio: 1; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; padding: 4px; background: white; cursor: pointer; border-top: none; border-left: none; position: relative; text-align: left; font-family: inherit; }
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid #e5e7eb; }
+  .day-cell { aspect-ratio: 1; min-width: 0; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; padding: 4px; background: white; cursor: pointer; border-top: none; border-left: none; position: relative; text-align: left; font-family: inherit; overflow: hidden; }
   .day-cell:disabled { background: #f9fafb; color: #d1d5db; cursor: not-allowed; }
   .day-cell.selected { background: #d1fae5; box-shadow: inset 0 0 0 4px #10b981; z-index: 1; }
   .day-cell.open-day { background: #fef9c3; }
@@ -346,7 +346,7 @@
       html += '<div class="section"><div class="hint">👆 カレンダーから日付を選んでください<br><small>（土日祝だけ選べます）</small></div></div>';
     }
 
-    html += '<div style="text-align:center;padding:20px;color:#9ca3af;font-size:11px;">v2.1 土曜日修正版</div>';
+    html += '<div style="text-align:center;padding:20px;color:#9ca3af;font-size:11px;">v2.2 土曜日表示修正版</div>';
     document.getElementById('app').innerHTML = html;
   }
 
