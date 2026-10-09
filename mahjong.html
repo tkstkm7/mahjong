@@ -6,22 +6,8 @@
 <title>麻雀の日程</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body {
-    font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
-    background: #fef3c7;
-    color: #1f2937;
-    padding-bottom: 40px;
-    min-height: 100vh;
-  }
-  .header {
-    background: #15803d;
-    color: white;
-    padding: 20px 16px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
+  body { font-family: "Hiragino Sans", "Yu Gothic", sans-serif; background: #fef3c7; color: #1f2937; padding-bottom: 40px; min-height: 100vh; }
+  .header { background: #15803d; color: white; padding: 20px 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 10; }
   .header-inner { max-width: 640px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
   .header-left { display: flex; align-items: center; gap: 12px; }
   .header-icon { font-size: 36px; }
@@ -53,8 +39,9 @@
   .day-cell.selected { background: #d1fae5; box-shadow: inset 0 0 0 4px #10b981; z-index: 1; }
   .day-cell.open-day { background: #fef9c3; }
   .day-num { font-size: 16px; font-weight: bold; }
-  .day-num.sun, .day-num.holiday { color: #ef4444; }
+  .day-num.sun { color: #ef4444; }
   .day-num.sat { color: #3b82f6; }
+  .day-num.hol { color: #ef4444; }
   .day-num.disabled { color: #d1d5db; }
   .holiday-name { font-size: 8px; color: #ef4444; line-height: 1; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .my-resp { position: absolute; top: 2px; right: 4px; font-size: 14px; font-weight: 900; }
@@ -107,55 +94,99 @@
   <div class="loading"><div class="loading-icon">🀄</div><div>読み込み中...</div></div>
 </div>
 <script>
-  const SUPABASE_URL = 'https://fhfzbkjpagktvonsasui.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_C1A5JEUCKVe3mYEThPgqvg_K2k3Ic6A';
-  const MEMBERS = ['宇野', '丹波', '村上', '津熊', '森田'];
-  const HOLIDAYS = {
-    '2026-01-01':'元日','2026-01-12':'成人の日','2026-02-11':'建国記念の日',
-    '2026-02-23':'天皇誕生日','2026-03-20':'春分の日','2026-04-29':'昭和の日',
-    '2026-05-03':'憲法記念日','2026-05-04':'みどりの日','2026-05-05':'こどもの日',
-    '2026-05-06':'振替休日','2026-07-20':'海の日','2026-08-11':'山の日','2026-08-10':'お盆','2026-08-12':'お盆','2026-08-13':'お盆','2026-08-14':'お盆',
-    '2026-09-21':'敬老の日','2026-09-22':'国民の休日','2026-09-23':'秋分の日',
-    '2026-10-12':'スポーツの日','2026-11-03':'文化の日','2026-11-23':'勤労感謝の日',
+  var SUPABASE_URL = 'https://fhfzbkjpagktvonsasui.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_C1A5JEUCKVe3mYEThPgqvg_K2k3Ic6A';
+  var MEMBERS = ['宇野', '丹波', '村上', '津熊', '森田'];
+  var HOLIDAYS = {
+    '2026-01-01': '元日',
+    '2026-01-12': '成人の日',
+    '2026-02-11': '建国記念の日',
+    '2026-02-23': '天皇誕生日',
+    '2026-03-20': '春分の日',
+    '2026-04-29': '昭和の日',
+    '2026-05-03': '憲法記念日',
+    '2026-05-04': 'みどりの日',
+    '2026-05-05': 'こどもの日',
+    '2026-07-20': '海の日',
+    '2026-08-10': 'お盆',
+    '2026-08-11': '山の日',
+    '2026-08-12': 'お盆',
+    '2026-08-13': 'お盆',
+    '2026-08-14': 'お盆',
+    '2026-09-21': '敬老の日',
+    '2026-09-22': '国民の休日',
+    '2026-09-23': '秋分の日',
+    '2026-10-12': 'スポーツの日',
+    '2026-11-03': '文化の日',
+    '2026-11-23': '勤労感謝の日',
+    '2027-01-01': '元日',
+    '2027-01-11': '成人の日',
+    '2027-02-11': '建国記念の日',
+    '2027-02-23': '天皇誕生日',
+    '2027-03-21': '春分の日',
+    '2027-03-22': '振替休日',
+    '2027-04-29': '昭和の日',
+    '2027-05-03': '憲法記念日',
+    '2027-05-04': 'みどりの日',
+    '2027-05-05': 'こどもの日',
+    '2027-07-19': '海の日',
+    '2027-08-11': '山の日',
+    '2027-09-20': '敬老の日',
+    '2027-09-23': '秋分の日',
+    '2027-10-11': 'スポーツの日',
+    '2027-11-03': '文化の日',
+    '2027-11-23': '勤労感謝の日'
   };
-  const state = { viewYear: new Date().getFullYear(), viewMonth: new Date().getMonth(), activeMember: null, selectedDate: null, responses: {}, online: false, loaded: false };
 
-  async function sbGet(path) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+  var state = {
+    viewYear: new Date().getFullYear(),
+    viewMonth: new Date().getMonth(),
+    activeMember: null,
+    selectedDate: null,
+    responses: {},
+    online: false,
+    loaded: false
+  };
+
+  function sbGet(path) {
+    return fetch(SUPABASE_URL + '/rest/v1/' + path, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    }).then(function(res) {
+      if (!res.ok) return res.text().then(function(t) { throw new Error('GET ' + res.status + ': ' + t); });
+      return res.json();
     });
-    if (!res.ok) throw new Error(`GET ${res.status}: ${await res.text()}`);
-    return res.json();
   }
-  async function sbInsert(body) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/responses`, {
+  function sbInsert(body) {
+    return fetch(SUPABASE_URL + '/rest/v1/responses', {
       method: 'POST',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify(body),
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify(body)
+    }).then(function(res) {
+      if (!res.ok) return res.text().then(function(t) { throw new Error('INSERT ' + res.status + ': ' + t); });
     });
-    if (!res.ok) throw new Error(`INSERT ${res.status}: ${await res.text()}`);
   }
-  async function sbUpdate(member, dateKey, status) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/responses?member_name=eq.${encodeURIComponent(member)}&date=eq.${dateKey}`, {
+  function sbUpdate(member, dateKey, status) {
+    return fetch(SUPABASE_URL + '/rest/v1/responses?member_name=eq.' + encodeURIComponent(member) + '&date=eq.' + dateKey, {
       method: 'PATCH',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ status: status }),
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ status: status })
+    }).then(function(res) {
+      if (!res.ok) return res.text().then(function(t) { throw new Error('UPDATE ' + res.status + ': ' + t); });
     });
-    if (!res.ok) throw new Error(`UPDATE ${res.status}: ${await res.text()}`);
   }
-  async function sbDelete(member, dateKey) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/responses?member_name=eq.${encodeURIComponent(member)}&date=eq.${dateKey}`, {
+  function sbDelete(member, dateKey) {
+    return fetch(SUPABASE_URL + '/rest/v1/responses?member_name=eq.' + encodeURIComponent(member) + '&date=eq.' + dateKey, {
       method: 'DELETE',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    }).then(function(res) {
+      if (!res.ok) return res.text().then(function(t) { throw new Error('DELETE ' + res.status + ': ' + t); });
     });
-    if (!res.ok) throw new Error(`DELETE ${res.status}: ${await res.text()}`);
   }
 
-  async function loadResponses() {
-    try {
-      const data = await sbGet('responses?select=*');
-      const map = {};
-      data.forEach((row) => {
+  function loadResponses() {
+    sbGet('responses?select=*').then(function(data) {
+      var map = {};
+      data.forEach(function(row) {
         if (!map[row.date]) map[row.date] = {};
         map[row.date][row.member_name] = row.status;
       });
@@ -163,139 +194,156 @@
       state.online = true;
       state.loaded = true;
       render();
-    } catch (e) {
+    }).catch(function(e) {
       state.online = false;
       state.loaded = true;
-      console.error('Load error:', e);
       render();
-    }
+    });
   }
 
-  async function saveResponse(dateKey, member, value) {
-    const current = (state.responses[dateKey] || {})[member];
-    try {
-      if (current === value) {
-        await sbDelete(member, dateKey);
-      } else if (current) {
-        await sbUpdate(member, dateKey, value);
-      } else {
-        await sbInsert({ member_name: member, date: dateKey, status: value });
-      }
+  function saveResponse(dateKey, member, value) {
+    var current = (state.responses[dateKey] || {})[member];
+    var p;
+    if (current === value) {
+      p = sbDelete(member, dateKey);
+    } else if (current) {
+      p = sbUpdate(member, dateKey, value);
+    } else {
+      p = sbInsert({ member_name: member, date: dateKey, status: value });
+    }
+    p.then(function() {
       state.online = true;
       loadResponses();
-    } catch (e) {
-      console.error('Save error:', e);
+    }).catch(function(e) {
       alert('保存に失敗: ' + e.message);
       loadResponses();
-    }
+    });
   }
 
-  function formatDateKey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
-  function isWeekendOrHoliday(y, m, d) {
-    const dow = new Date(y, m, d).getDay();
+  function fdk(y, m, d) {
+    return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  }
+  function isAvail(y, m, d) {
+    var dow = new Date(y, m, d).getDay();
     if (dow === 0 || dow === 6) return true;
-    return HOLIDAYS[formatDateKey(y, m, d)] !== undefined;
+    return !!HOLIDAYS[fdk(y, m, d)];
   }
   function isPast(y, m, d) {
-    const t = new Date(); t.setHours(0,0,0,0);
+    var t = new Date(); t.setHours(0, 0, 0, 0);
     return new Date(y, m, d) < t;
   }
-  function countYes(dk) { const r = state.responses[dk] || {}; return Object.values(r).filter((v) => v === 'yes').length; }
+  function countYes(dk) {
+    var r = state.responses[dk] || {};
+    return Object.values(r).filter(function(v) { return v === 'yes'; }).length;
+  }
   function isOpen(dk) { return countYes(dk) >= 4; }
-  function formatDateDisplay(dk) {
-    const [y,m,d] = dk.split('-').map(Number);
-    const dt = new Date(y, m-1, d);
-    const days = ['日','月','火','水','木','金','土'];
-    return `${m}月${d}日(${days[dt.getDay()]})`;
+  function fdd(dk) {
+    var parts = dk.split('-').map(Number);
+    var dt = new Date(parts[0], parts[1] - 1, parts[2]);
+    var days = ['日', '月', '火', '水', '木', '金', '土'];
+    return parts[1] + '月' + parts[2] + '日(' + days[dt.getDay()] + ')';
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
   }
 
   function selectMember(name) { state.activeMember = state.activeMember === name ? null : name; render(); }
   function selectDate(dk) { state.selectedDate = state.selectedDate === dk ? null : dk; render(); }
-  function prevMonth() { if (state.viewMonth === 0) { state.viewMonth = 11; state.viewYear -= 1; } else state.viewMonth -= 1; render(); }
-  function nextMonth() { if (state.viewMonth === 11) { state.viewMonth = 0; state.viewYear += 1; } else state.viewMonth += 1; render(); }
-  function setResp(value) { if (state.selectedDate && state.activeMember) saveResponse(state.selectedDate, state.activeMember, value); }
-
-  function escape(s) { return String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function prevMonth() {
+    if (state.viewMonth === 0) { state.viewMonth = 11; state.viewYear--; } else state.viewMonth--;
+    render();
+  }
+  function nextMonth() {
+    if (state.viewMonth === 11) { state.viewMonth = 0; state.viewYear++; } else state.viewMonth++;
+    render();
+  }
+  function setResp(value) {
+    if (state.selectedDate && state.activeMember) saveResponse(state.selectedDate, state.activeMember, value);
+  }
 
   function render() {
-    if (!state.loaded) { document.getElementById('app').innerHTML = `<div class="loading"><div class="loading-icon">🀄</div><div>読み込み中...</div></div>`; return; }
-    const sEl = document.getElementById('status');
+    if (!state.loaded) return;
+    var sEl = document.getElementById('status');
     sEl.className = 'status ' + (state.online ? 'online' : 'offline');
     sEl.textContent = state.online ? '✓ 同期中' : '⚠ オフライン';
 
-    let html = '';
-    html += `<div class="section"><div class="members-box">`;
-    html += `<div class="members-title">① まず自分の名前を選ぶ</div>`;
-    html += `<div class="members-grid">`;
-    MEMBERS.forEach((name) => {
-      const active = state.activeMember === name ? ' active' : '';
-      html += `<button class="member-btn${active}" onclick="selectMember('${name}')">${escape(name)}</button>`;
+    var html = '';
+
+    // メンバー
+    html += '<div class="section"><div class="members-box">';
+    html += '<div class="members-title">① まず自分の名前を選ぶ</div>';
+    html += '<div class="members-grid">';
+    MEMBERS.forEach(function(name) {
+      html += '<button class="member-btn' + (state.activeMember === name ? ' active' : '') + '" onclick="selectMember(\'' + esc(name) + '\')">' + esc(name) + '</button>';
     });
-    html += `</div>`;
-    if (state.activeMember) html += `<div class="selected-banner">✓ ${escape(state.activeMember)}さんを選択中</div>`;
-    html += `</div></div>`;
+    html += '</div>';
+    if (state.activeMember) html += '<div class="selected-banner">✓ ' + esc(state.activeMember) + 'さんを選択中</div>';
+    html += '</div></div>';
 
-    html += `<div class="section"><div class="calendar">`;
-    html += `<div class="calendar-title">② 日付を選ぶ（土日祝のみ）</div>`;
-    html += `<div class="calendar-nav"><button onclick="prevMonth()">‹</button>`;
-    html += `<div class="calendar-nav-month">${state.viewYear}年 ${state.viewMonth + 1}月</div>`;
-    html += `<button onclick="nextMonth()">›</button></div>`;
-    html += `<div class="calendar-dow"><div class="sun">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="sat">土</div></div>`;
-    html += `<div class="calendar-grid">`;
+    // カレンダー
+    html += '<div class="section"><div class="calendar">';
+    html += '<div class="calendar-title">② 日付を選ぶ（土日祝のみ）</div>';
+    html += '<div class="calendar-nav"><button onclick="prevMonth()">‹</button>';
+    html += '<div class="calendar-nav-month">' + state.viewYear + '年 ' + (state.viewMonth + 1) + '月</div>';
+    html += '<button onclick="nextMonth()">›</button></div>';
+    html += '<div class="calendar-dow"><div class="sun">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="sat">土</div></div>';
+    html += '<div class="calendar-grid">';
 
-    const firstDay = new Date(state.viewYear, state.viewMonth, 1);
-    const startDow = firstDay.getDay();
-    const daysInMonth = new Date(state.viewYear, state.viewMonth + 1, 0).getDate();
-    for (let i = 0; i < startDow; i++) html += '<button class="day-cell" disabled></button>';
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dk = formatDateKey(state.viewYear, state.viewMonth, day);
-      const dow = new Date(state.viewYear, state.viewMonth, day).getDay();
-      const avail = isWeekendOrHoliday(state.viewYear, state.viewMonth, day);
-      const past = isPast(state.viewYear, state.viewMonth, day);
-      const hol = HOLIDAYS[dk];
-      const yes = countYes(dk);
-      const open = isOpen(dk);
-      const my = state.activeMember ? (state.responses[dk] || {})[state.activeMember] : null;
-      const sel = state.selectedDate === dk;
-      const dis = !avail || past;
-      let cls = 'day-cell';
-      if (sel) cls += ' selected'; else if (open) cls += ' open-day';
-      let dc = 'day-num';
-      if (dis) dc += ' disabled'; else if (dow === 0 || hol) dc += ' sun'; else if (dow === 6) dc += ' sat';
-      html += `<button class="${cls}" ${dis ? 'disabled' : `onclick="selectDate('${dk}')"`}>`;
-      html += `<div class="${dc}">${day}</div>`;
-      if (hol && !dis) html += `<div class="holiday-name">${escape(hol)}</div>`;
-      if (!dis && my) { const s = my === 'yes' ? '○' : my === 'maybe' ? '△' : '×'; html += `<div class="my-resp ${my}">${s}</div>`; }
-      if (!dis && yes > 0) html += `<div class="yes-count ${open ? 'open' : ''}">${open ? '⭐' : ''}○${yes}</div>`;
-      html += `</button>`;
+    var startDow = new Date(state.viewYear, state.viewMonth, 1).getDay();
+    var daysInMonth = new Date(state.viewYear, state.viewMonth + 1, 0).getDate();
+    for (var i = 0; i < startDow; i++) html += '<button class="day-cell" disabled></button>';
+    for (var day = 1; day <= daysInMonth; day++) {
+      var dk = fdk(state.viewYear, state.viewMonth, day);
+      var dow = new Date(state.viewYear, state.viewMonth, day).getDay();
+      var avail = isAvail(state.viewYear, state.viewMonth, day);
+      var past = isPast(state.viewYear, state.viewMonth, day);
+      var hol = HOLIDAYS[dk];
+      var yes = countYes(dk);
+      var open = isOpen(dk);
+      var my = state.activeMember ? (state.responses[dk] || {})[state.activeMember] : null;
+      var sel = state.selectedDate === dk;
+      var dis = !avail || past;
+      var cls = 'day-cell' + (sel ? ' selected' : (open ? ' open-day' : ''));
+      var dc = 'day-num' + (dis ? ' disabled' : (hol ? ' hol' : (dow === 0 ? ' sun' : (dow === 6 ? ' sat' : ''))));
+      html += '<button class="' + cls + '" ' + (dis ? 'disabled' : 'onclick="selectDate(\'' + dk + '\')"') + '>';
+      html += '<div class="' + dc + '">' + day + '</div>';
+      if (hol && !dis) html += '<div class="holiday-name">' + esc(hol) + '</div>';
+      if (!dis && my) {
+        var s = my === 'yes' ? '○' : my === 'maybe' ? '△' : '×';
+        html += '<div class="my-resp ' + my + '">' + s + '</div>';
+      }
+      if (!dis && yes > 0) html += '<div class="yes-count' + (open ? ' open' : '') + '">' + (open ? '⭐' : '') + '○' + yes + '</div>';
+      html += '</button>';
     }
-    const trailing = (7 - ((startDow + daysInMonth) % 7)) % 7;
-    for (let i = 0; i < trailing; i++) html += '<button class="day-cell" disabled></button>';
-    html += `</div></div></div>`;
+    var trailing = (7 - ((startDow + daysInMonth) % 7)) % 7;
+    for (var j = 0; j < trailing; j++) html += '<button class="day-cell" disabled></button>';
+    html += '</div></div></div>';
 
+    // 回答ボックス
     if (state.selectedDate && state.activeMember) {
-      const my = (state.responses[state.selectedDate] || {})[state.activeMember];
-      html += `<div class="section"><div class="response-box">`;
-      html += `<div class="response-title">③ ${formatDateDisplay(state.selectedDate)} に行ける？</div>`;
-      html += `<div class="response-grid">`;
-      html += `<button class="response-btn yes ${my === 'yes' ? 'active' : ''}" onclick="setResp('yes')"><div class="symbol">○</div><div class="label">行ける</div></button>`;
-      html += `<button class="response-btn maybe ${my === 'maybe' ? 'active' : ''}" onclick="setResp('maybe')"><div class="symbol">△</div><div class="label">微妙</div></button>`;
-      html += `<button class="response-btn no ${my === 'no' ? 'active' : ''}" onclick="setResp('no')"><div class="symbol">×</div><div class="label">行けない</div></button>`;
-      html += `</div>`;
-      html += `<div class="members-list"><div class="members-list-title">この日のみんなの回答</div>`;
-      MEMBERS.forEach((name) => {
-        const r = (state.responses[state.selectedDate] || {})[name];
-        const s = r === 'yes' ? '○' : r === 'maybe' ? '△' : r === 'no' ? '×' : '？';
-        const c = r || 'none';
-        const yl = name === state.activeMember ? ' (あなた)' : '';
-        html += `<div class="member-row"><span>${escape(name)}${yl}</span><span class="symbol ${c}">${s}</span></div>`;
+      var my2 = (state.responses[state.selectedDate] || {})[state.activeMember];
+      html += '<div class="section"><div class="response-box">';
+      html += '<div class="response-title">③ ' + fdd(state.selectedDate) + ' に行ける？</div>';
+      html += '<div class="response-grid">';
+      html += '<button class="response-btn yes' + (my2 === 'yes' ? ' active' : '') + '" onclick="setResp(\'yes\')"><div class="symbol">○</div><div class="label">行ける</div></button>';
+      html += '<button class="response-btn maybe' + (my2 === 'maybe' ? ' active' : '') + '" onclick="setResp(\'maybe\')"><div class="symbol">△</div><div class="label">微妙</div></button>';
+      html += '<button class="response-btn no' + (my2 === 'no' ? ' active' : '') + '" onclick="setResp(\'no\')"><div class="symbol">×</div><div class="label">行けない</div></button>';
+      html += '</div>';
+      html += '<div class="members-list"><div class="members-list-title">この日のみんなの回答</div>';
+      MEMBERS.forEach(function(name) {
+        var r = (state.responses[state.selectedDate] || {})[name];
+        var sym = r === 'yes' ? '○' : r === 'maybe' ? '△' : r === 'no' ? '×' : '？';
+        var c = r || 'none';
+        html += '<div class="member-row"><span>' + esc(name) + (name === state.activeMember ? ' (あなた)' : '') + '</span><span class="symbol ' + c + '">' + sym + '</span></div>';
       });
-      if (isOpen(state.selectedDate)) html += `<div class="open-banner">⭐ 4人以上が ○ ! 開催決定！</div>`;
-      html += `</div></div></div>`;
+      if (isOpen(state.selectedDate)) html += '<div class="open-banner">⭐ 4人以上が ○！開催決定！</div>';
+      html += '</div></div></div>';
     } else if (!state.activeMember) {
-      html += `<div class="section"><div class="hint">👆 まず上の枠で自分の名前を選んでください</div></div>`;
+      html += '<div class="section"><div class="hint">👆 まず上の枠で自分の名前を選んでください</div></div>';
     } else {
-      html += `<div class="section"><div class="hint">👆 カレンダーから日付を選んでください<br><small>（土日祝だけ選べます）</small></div></div>`;
+      html += '<div class="section"><div class="hint">👆 カレンダーから日付を選んでください<br><small>（土日祝だけ選べます）</small></div></div>';
     }
 
     document.getElementById('app').innerHTML = html;
