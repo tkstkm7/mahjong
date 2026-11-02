@@ -183,6 +183,13 @@
     });
   }
 
+  var lastDataJson = '';
+  function updateStatus() {
+    var sEl = document.getElementById('status');
+    if (!sEl) return;
+    sEl.className = 'status ' + (state.online ? 'online' : 'offline');
+    sEl.textContent = state.online ? '✓ 同期中' : '⚠ オフライン';
+  }
   function loadResponses() {
     sbGet('responses?select=*').then(function(data) {
       var map = {};
@@ -190,14 +197,19 @@
         if (!map[row.date]) map[row.date] = {};
         map[row.date][row.member_name] = row.status;
       });
+      var j = JSON.stringify(map);
+      var changed = j !== lastDataJson;
+      var first = !state.loaded;
+      lastDataJson = j;
       state.responses = map;
       state.online = true;
       state.loaded = true;
-      render();
+      if (changed || first) render(); else updateStatus();
     }).catch(function(e) {
+      var first2 = !state.loaded;
       state.online = false;
       state.loaded = true;
-      render();
+      if (first2) render(); else updateStatus();
     });
   }
 
@@ -346,7 +358,7 @@
       html += '<div class="section"><div class="hint">👆 カレンダーから日付を選んでください<br><small>（土日祝だけ選べます）</small></div></div>';
     }
 
-    html += '<div style="text-align:center;padding:20px;color:#9ca3af;font-size:11px;">v2.2 土曜日表示修正版</div>';
+    html += '<div style="text-align:center;padding:20px;color:#9ca3af;font-size:11px;">v2.3 日付タップ修正版</div>';
     document.getElementById('app').innerHTML = html;
   }
 
